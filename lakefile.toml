@@ -1,0 +1,6 @@
+name = "TheologExercises2026"
+version = "0.1.0"
+defaultTargets = ["TheologExercises2026"]
+
+[[lean_lib]]
+name = "TheologExercises2026"
