@@ -8,7 +8,7 @@ inductive Formula (Atom : Type u) : Type u where
 | eq : Formula Atom -> Formula Atom -> Formula Atom
 
 def Formula.toString {Atom : Type u} [ToString Atom] : Formula Atom -> String
-| .empty => "⊥"
+| .empty => "⊤"
 | .atom a => ToString.toString a
 | .not f => s!"p¬ {toString f}"
 | .and f g => s!"({toString f} p∧ {toString g})"
