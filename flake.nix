@@ -12,6 +12,9 @@
           devShells.default = pkgs.mkShell {
             packages = [
               pkgs.elan
+              (pkgs.python3.withPackages (python-pkgs: [
+                python-pkgs.z3-solver
+              ]))
             ];
           };
         }
