@@ -256,3 +256,30 @@ theorem exercise04A {f : Formula Atom} : f.atoms.length <= f.size := by
 
 end Exercise04
 
+
+section Exercise05
+
+def VL := Formula.atom "VL" -- Lucy is vampire.
+def VM := Formula.atom "VM" -- Minna is vampire.
+def CL := Formula.atom "CL" -- Lucy is cracy.
+def CM := Formula.atom "CM" -- Minna is crazy.
+
+def v : Valuation String := fun s => match s with 
+  | "VL" => true -- Lucy is the vampire.
+  | "VM" => false -- Minna is not the vampire.
+  | "CL" => true -- Lucy is crazy.
+  | "CM" => true -- Minna is crazy.
+  | _ => false
+
+def oneVamp := VL p↔ p¬ VM
+def statementLucy := (VL p↔ CL) p↔ (CL p∧ CM)
+def statementMinna := (VM p↔ CM) p↔ p¬ (CL p∧ CM)
+
+theorem exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by 
+  unfold v 
+  unfold oneVamp statementLucy statementMinna
+  unfold VL VM CL CM
+  grind
+
+end Exercise05
+
