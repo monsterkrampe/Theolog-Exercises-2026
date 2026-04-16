@@ -25,20 +25,23 @@ infixl:50 " p∨ " => Formula.or
 infixl:50 " p-> " => Formula.imp
 infixl:50 " p↔  " => Formula.eq
 
+variable {Atom : Type u}
 
 declare_syntax_cat formula
 syntax str                            : formula
+syntax ident                          : formula
 syntax:30 formula:30 " ∨ " formula:31 : formula
 syntax:40 formula:40 " ∧ " formula:41 : formula
 syntax:50 "¬"formula:50               : formula
 syntax:20 formula:20 " → " formula:21 : formula
 syntax:10 formula:10 " ↔ " formula:11 : formula
-syntax " ( " formula ") "             : formula
+syntax " (" formula ") "             : formula
 
 syntax " ⟪ " formula " ⟫ " : term
 
 macro_rules
 | `(⟪ $p:str ⟫) => `(Formula.atom $p)
+| `(⟪ $p:ident ⟫) => `($p)
 | `(⟪ ¬$F:formula ⟫) => `(Formula.not ⟪ $F ⟫)
 | `(⟪ $F:formula ∨ $G:formula ⟫) => `(Formula.or (⟪ $F ⟫) (⟪ $G ⟫))
 | `(⟪ $F:formula ∧ $G:formula ⟫) => `(Formula.and (⟪ $F ⟫) (⟪ $G ⟫))
@@ -52,7 +55,7 @@ section ExampleDefinitions
 def P := Formula.atom 'P'
 def Q := Formula.atom 'Q'
 
-def exampleFormula : Formula Char := P p∧ (p¬ Q)
+def exampleFormula := ⟪ P ∧ ¬Q ⟫
 
 def exampleFormula2 := ⟪ (¬"p" ∨ "q") ∧ "r" ↔ ¬"x" ∨ ("p" → "q") ⟫
 
@@ -62,8 +65,6 @@ end ExampleDefinitions
 section FromLecture
 
 namespace Formula
-
-variable {Atom : Type u}
 
 -- In the lecture this is a set. We consider a list of subformulae here to avoid introducing a set definition.
 -- Opposed to the set, the list might have duplicates but this should not matter much for our considerations.
@@ -155,27 +156,28 @@ theorem list_entails_iff {l : List (Formula Atom)} {f : Formula Atom} : l ⊧ f 
 end Formula
 
 -- First holds.
-theorem exercise02A : [ ⟪ ¬"a" ∨ "b"⟫, ⟪ ¬"b" ∨ "c" ⟫, ⟪ "b" ∧ "c"⟫ ] ⊧ ⟪ (("a" ↔ "b") ∨ "c") ⟫ := by
-  intro v
+theorem exercise02A : ∀ {a b c : Formula Atom}, [ ⟪ ¬a ∨ b ⟫, ⟪ ¬b ∨ c ⟫, ⟪ b ∧ c⟫ ] ⊧ ⟪ ((a ↔ b) ∨ c) ⟫ := by
+  intro a b c v
   grind
 
 -- Second holds.
-theorem exercise02B : [ ⟪ ¬"a" → "b"⟫, ⟪ "c" ∨ "a" ⟫, ⟪ "a" → ¬"b"⟫, ⟪ ¬"c" ⟫ ] ⊧ ⟪ "a" ⟫ := by
-  intro v
+theorem exercise02B : ∀ {a b c : Formula Atom}, [ ⟪ ¬a → b⟫, ⟪ c ∨ a ⟫, ⟪ a → ¬b⟫, ⟪ ¬c ⟫ ] ⊧ ⟪ a ⟫ := by
+  intro a b c v
   grind
 
 -- Third holds.
-theorem exercise02C : [ ⟪ ("a" ∧ ¬"b") ∨ (¬"a" ∧ "b") ⟫, ⟪ ¬"c" ⟫, ⟪ "b" ⟫, ⟪ ¬(¬"a" ∨ "b")⟫ ] ⊧ ⟪ ¬("a" ∨ "b") ⟫ := by
-  intro v
+theorem exercise02C : ∀ {a b c : Formula Atom}, [ ⟪ (a ∧ ¬b) ∨ (¬a ∧ b) ⟫, ⟪ ¬c ⟫, ⟪ b ⟫, ⟪ ¬(¬a ∨ b)⟫ ] ⊧ ⟪ ¬(a ∨ b) ⟫ := by
+  intro a b c v
   grind
 
 -- This one does not hold.
-theorem nonEntailmentExample : ¬ [ ⟪ "A" ∧ "B" ⟫, ⟪ "B" → ¬"C" ⟫] ⊧ ⟪ "C" ⟫ := by
+theorem nonEntailmentExample : ¬ [ ⟪ exA ∧ exB ⟫, ⟪ exB → ¬exC ⟫] ⊧ ⟪ exC ⟫ := by
+  unfold exA exB exC
   intro contra
   let v := fun atom => match atom with
-    | "A" => true
-    | "B" => true
-    | "C" => false
+    | 'a' => true
+    | 'b' => true
+    | 'c' => false
     | _ => false
   specialize contra v
   grind
