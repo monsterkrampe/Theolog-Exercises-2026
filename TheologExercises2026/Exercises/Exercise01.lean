@@ -275,11 +275,9 @@ def oneVamp := VL p↔ p¬ VM
 def statementLucy := (VL p↔ CL) p↔ (CL p∧ CM)
 def statementMinna := (VM p↔ CM) p↔ p¬ (CL p∧ CM)
 
-theorem exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by 
-  unfold v 
-  unfold oneVamp statementLucy statementMinna
-  unfold VL VM CL CM
-  grind
+#eval [oneVamp, statementLucy, statementMinna].all v.eval
+
+theorem exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by decide
 
 end Exercise05
 
