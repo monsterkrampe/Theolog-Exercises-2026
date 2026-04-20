@@ -200,15 +200,17 @@ def tautologie (f : Formula Atom) : Prop := ∀ (v : Valuation Atom), v.eval f
 end Formula
 
 
-theorem exercise03A : ⟪ ¬¬"p" ↔ "p" ⟫.satisfiable := by
+theorem exercise03A : ∀ {p : Formula Atom}, ⟪ ¬¬p ↔ p ⟫.satisfiable := by
+  intro p
   exists (fun _ => true)
-
-theorem exercise03B : (⟪ ¬"p" ∧ (("p" ∨ "q") ∧ ¬"q") ⟫).unsatisfiable := by
-  intro ⟨v, contra⟩
   grind
 
-theorem exercise03C : ⟪ (("p" ∧ "q") → "r") ↔ ("p" → ("q" → "r")) ⟫.tautologie := by
-  intro v
+theorem exercise03B : ∀ {p q : Formula Atom}, (⟪ ¬p ∧ ((p ∨ q) ∧ ¬q) ⟫).unsatisfiable := by
+  intro p q ⟨v, contra⟩
+  grind
+
+theorem exercise03C : ∀ {p q r : Formula Atom}, ⟪ ((p ∧ q) → r) ↔ (p → (q → r)) ⟫.tautologie := by
+  intro p q r v
   grind
 
 end Exercise03
@@ -289,9 +291,9 @@ def v : Valuation String := fun s => match s with
   | "CM" => true -- Minna is crazy.
   | _ => false
 
-def oneVamp := VL p↔ p¬ VM
-def statementLucy := (VL p↔ CL) p↔ (CL p∧ CM)
-def statementMinna := (VM p↔ CM) p↔ p¬ (CL p∧ CM)
+def oneVamp := ⟪ VL ↔ ¬ VM ⟫
+def statementLucy := ⟪ (VL ↔ CL) ↔ (CL ∧ CM) ⟫
+def statementMinna := ⟪ (VM ↔ CM) ↔ ¬(CL ∧ CM) ⟫
 
 -- Lucy being a vampire can make all statements true.
 -- But this does not mean already that Lucy is necessarily the vampire.
