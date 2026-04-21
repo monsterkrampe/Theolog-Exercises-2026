@@ -68,5 +68,65 @@ theorem sheet02_exercise01 (q : Atom) : ∀ F : IteOnlyFormula Atom, ¬ (F.toFor
   rw [sheet02_exercise01Aux] at contra
   simp [allTrue, Valuation.eval] at contra
 
+
+-- If we also have top and bottom then we can always express each formula using ite (and top and bot).
+
+inductive IteWithTopAndBotFormula (Atom : Type u) : Type u where
+| top : IteWithTopAndBotFormula Atom
+| bot : IteWithTopAndBotFormula Atom
+| atom : Atom -> IteWithTopAndBotFormula Atom
+| ite : IteWithTopAndBotFormula Atom -> IteWithTopAndBotFormula Atom -> IteWithTopAndBotFormula Atom -> IteWithTopAndBotFormula Atom
+
+def IteWithTopAndBotFormula.toFormula [Inhabited Atom] : IteWithTopAndBotFormula Atom -> Formula Atom 
+| .top => .atom default p∨ p¬ .atom default
+| .bot => .atom default p∧ p¬ .atom default
+| .atom a => .atom a
+| .ite f g h => .ite f.toFormula g.toFormula h.toFormula
+
+def IteWithTopAndBotFormula.fromFormula : Formula Atom -> IteWithTopAndBotFormula Atom
+| .empty => .top
+| .atom a => .atom a
+| .not f => .ite (fromFormula f) .bot .top
+| .and f g => .ite (fromFormula f) (fromFormula g) .bot
+| .or f g => .ite (fromFormula f) .top (fromFormula g)
+| .imp f g => .ite (fromFormula f) (fromFormula g) .top
+| .eq f g => .ite (fromFormula f) (fromFormula g) (.ite (fromFormula g) .bot .top)
+
+theorem IteWithTopAndBotFormula.fromFormula_equiv [Inhabited Atom] : 
+    ∀ F : Formula Atom, (fromFormula F).toFormula === F := by 
+  intro F
+  fun_induction fromFormula with 
+  | case1 => simp only [toFormula]; intro v; simp [Valuation.eval]
+  | case2 a => simpa [toFormula] using Formula.equiv_refl
+  | case3 f ih => 
+    simp only [toFormula, Formula.ite]
+    intro v
+    specialize ih v
+    grind
+  | case4 f g ih_f ih_g => 
+    simp only [toFormula, Formula.ite]
+    intro v
+    specialize ih_f v
+    specialize ih_g v
+    grind
+  | case5 f g ih_f ih_g => 
+    simp only [toFormula, Formula.ite]
+    intro v
+    specialize ih_f v
+    specialize ih_g v
+    grind
+  | case6 f g ih_f ih_g => 
+    simp only [toFormula, Formula.ite]
+    intro v
+    specialize ih_f v
+    specialize ih_g v
+    grind
+  | case7 f g ih_f ih_g => 
+    simp only [toFormula, Formula.ite]
+    intro v
+    specialize ih_f v
+    specialize ih_g v
+    grind
+
 end Exercise01
 
