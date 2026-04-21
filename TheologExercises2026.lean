@@ -1,2 +1,3 @@
 import TheologExercises2026.Exercises.Exercise01
+import TheologExercises2026.Exercises.Exercise02
 

@@ -59,8 +59,8 @@ end Formula
 
 def Valuation (Atom : Type u) := Atom -> Bool
 
-def allTrue : Valuation Char := fun _ => true
-def allFalse : Valuation Char := fun _ => false
+def allTrue {Atom : Type u} : Valuation Atom := fun _ => true
+def allFalse {Atom : Type u} : Valuation Atom := fun _ => false
 def onlyPTrue : Valuation Char := fun c => c = 'P'
 
 namespace Valuation
@@ -132,19 +132,19 @@ theorem list_entails_iff {l : List (Formula Atom)} {f : Formula Atom} : l ⊧ f 
 end Formula
 
 -- First holds.
-theorem exercise02A : ∀ {a b c : Formula Atom}, [p¬ a p∨ b, p¬ b p∨ c, b p∧ c] ⊧ ((a p↔ b) p∨ c) := by 
+theorem sheet01_exercise02A : ∀ {a b c : Formula Atom}, [p¬ a p∨ b, p¬ b p∨ c, b p∧ c] ⊧ ((a p↔ b) p∨ c) := by 
   intro a b c
   intro v
   grind
 
 -- Second holds.
-theorem exercise02B : ∀ {a b c : Formula Atom}, [a p-> b, c p∨ a, a p-> p¬ b, p¬ c] ⊧ a := by 
+theorem sheet01_exercise02B : ∀ {a b c : Formula Atom}, [a p-> b, c p∨ a, a p-> p¬ b, p¬ c] ⊧ a := by 
   intro a b c
   intro v
   grind
 
 -- Third holds.
-theorem exercise02C : ∀ {a b c : Formula Atom}, [(a p∧ p¬ b) p∨ (p¬ a p∧ b), p¬ c p∧ b, p¬ (p¬ a p∨ b)] ⊧ (p¬ (a p∨ b)) := by 
+theorem sheet01_exercise02C : ∀ {a b c : Formula Atom}, [(a p∧ p¬ b) p∨ (p¬ a p∧ b), p¬ c p∧ b, p¬ (p¬ a p∨ b)] ⊧ (p¬ (a p∨ b)) := by 
   intro a b c
   intro v
   grind
@@ -178,17 +178,17 @@ def tautologie (f : Formula Atom) : Prop := ∀ (v : Valuation Atom), v.eval f
 
 end Formula
 
-theorem exercise03A : ∀ {p : Formula Atom}, (p¬ p¬ p p↔ p).satisfiable := by 
+theorem sheet01_exercise03A : ∀ {p : Formula Atom}, (p¬ p¬ p p↔ p).satisfiable := by 
   intro p
-  exists (fun _ => true)
+  exists allTrue 
   grind
 
-theorem exercise03B : ∀ {p q : Formula Atom}, (p¬ p p∧ ((p p∨ q) p∧ p¬ q)).unsatisfiable := by 
+theorem sheet01_exercise03B : ∀ {p q : Formula Atom}, (p¬ p p∧ ((p p∨ q) p∧ p¬ q)).unsatisfiable := by 
   intro p q
   intro ⟨v, contra⟩
   grind
 
-theorem exercise03C : ∀ {p q r : Formula Atom}, (((p p∧ q) p-> r) p↔ (p p-> (q p-> r))).tautologie := by 
+theorem sheet01_exercise03C : ∀ {p q r : Formula Atom}, (((p p∧ q) p-> r) p↔ (p p-> (q p-> r))).tautologie := by 
   intro p q r
   intro v
   grind
@@ -238,7 +238,7 @@ theorem atom_sublist_subformulae {f : Formula Atom} : List.Sublist (f.atoms.map 
 
 end Formula
 
-theorem exercise04B {f : Formula Atom} : f.subformulae.length ≤ f.size := by 
+theorem sheet01_exercise04B {f : Formula Atom} : f.subformulae.length ≤ f.size := by 
   induction f with 
   | empty => simp [Formula.subformulae, Formula.size]
   | atom _ => simp [Formula.subformulae, Formula.size]
@@ -249,8 +249,8 @@ theorem exercise04B {f : Formula Atom} : f.subformulae.length ≤ f.size := by
   | eq f g ih_f ih_g => simp only [Formula.subformulae, Formula.size]; grind
 
 -- Note that this depends on exercise04B
-theorem exercise04A {f : Formula Atom} : f.atoms.length <= f.size := by 
-  suffices (f.atoms.map Formula.atom).length ≤ f.subformulae.length by apply Nat.le_trans _ exercise04B; grind
+theorem sheet01_exercise04A {f : Formula Atom} : f.atoms.length <= f.size := by 
+  suffices (f.atoms.map Formula.atom).length ≤ f.subformulae.length by apply Nat.le_trans _ sheet01_exercise04B; grind
   apply List.Sublist.length_le
   exact Formula.atom_sublist_subformulae
 
@@ -277,7 +277,7 @@ def statementMinna := (VM p↔ CM) p↔ p¬ (CL p∧ CM)
 
 #eval [oneVamp, statementLucy, statementMinna].all v.eval
 
-theorem exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by decide
+theorem sheet01_exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by decide
 
 end Exercise05
 
