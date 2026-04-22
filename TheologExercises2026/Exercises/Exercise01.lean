@@ -275,9 +275,14 @@ def oneVamp := VL p↔ p¬ VM
 def statementLucy := (VL p↔ CL) p↔ (CL p∧ CM)
 def statementMinna := (VM p↔ CM) p↔ p¬ (CL p∧ CM)
 
+-- Lucy being a vampire can make all statements true. 
+-- But this does not mean already that Lucy is necessarily the vampire.
 #eval [oneVamp, statementLucy, statementMinna].all v.eval
 
-theorem sheet01_exercise05 : [oneVamp, statementLucy, statementMinna].all v.eval := by decide
+/-- However, we can prove that Lucy being the vampire follows from the other formulae. -/
+theorem sheet01_exercise05 : [oneVamp, statementLucy, statementMinna] ⊧ VL := by 
+  unfold Formula.list_entails oneVamp statementLucy statementMinna
+  grind
 
 end Exercise05
 
