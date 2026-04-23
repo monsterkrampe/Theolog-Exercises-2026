@@ -6,26 +6,8 @@ inductive Formula (Atom : Type u) : Type u where
 | or : Formula Atom -> Formula Atom -> Formula Atom
 | imp : Formula Atom -> Formula Atom -> Formula Atom
 | eq : Formula Atom -> Formula Atom -> Formula Atom
+deriving DecidableEq, BEq, ReflBEq, LawfulBEq
 
-def Formula.toString {Atom : Type u} [ToString Atom] : Formula Atom -> String
-| .empty => "⊤"
-| .atom a => ToString.toString a
-| .not f => s!"p¬ {toString f}"
-| .and f g => s!"({toString f} p∧ {toString g})"
-| .or f g => s!"({toString f} p∨ {toString g})"
-| .imp f g => s!"({toString f} p-> {toString g})"
-| .eq f g => s!"({toString f} p↔ {toString g})"
-
-instance [ToString S] : ToString (Formula S) where
-  toString := Formula.toString
-
-prefix:60 "p¬ " => Formula.not
-infixl:50 " p∧ " => Formula.and
-infixl:50 " p∨ " => Formula.or
-infixl:50 " p-> " => Formula.imp
-infixl:50 " p↔  " => Formula.eq
-
-variable {Atom : Type u}
 
 declare_syntax_cat formula
 syntax str                            : formula
@@ -49,6 +31,17 @@ macro_rules
 | `(⟪ $F:formula ↔ $G:formula ⟫) => `(Formula.eq (⟪ $F ⟫) (⟪ $G ⟫))
 | `(⟪ ( $F ) ⟫) => `(⟪ $F ⟫)
 
+def Formula.toString {Atom : Type u} [ToString Atom] : Formula Atom -> String
+| .empty => "⊤"
+| .atom a => ToString.toString a
+| .not f => s!"¬{toString f}"
+| .and f g => s!"({toString f} ∧ {toString g})"
+| .or f g => s!"({toString f} ∨ {toString g})"
+| .imp f g => s!"({toString f} -> {toString g})"
+| .eq f g => s!"({toString f} ↔ {toString g})"
+
+instance [ToString S] : ToString (Formula S) where
+  toString := Formula.toString
 
 section ExampleDefinitions
 
@@ -116,7 +109,7 @@ def exA := Formula.atom 'a'
 def exB := Formula.atom 'b'
 def exC := Formula.atom 'c'
 def exD := Formula.atom 'd'
-def Ex01Formula := p¬ ((exD p↔ exB) p∧ (exC p-> (exD p∨ p¬ exA)))
+def Ex01Formula := ⟪ ¬ ((exD ↔ exB) ∧ (exC → (exD ∨ exA))) ⟫
 
 #eval Ex01Formula.subformulae
 
@@ -138,7 +131,7 @@ infix:50 " ⊧ " => list_entails
 def list_to_formula : List (Formula Atom) -> Formula Atom
 | [] => .empty
 | [f] => f
-| hd::tl => hd p∧ (list_to_formula tl)
+| hd::tl => .and hd (list_to_formula tl) --⟪ hd ∧ (list_to_formula tl) ⟫
 
 /-
 The following two theorems are currently not required for anything (not even the grinds in exercise02X).
@@ -156,17 +149,17 @@ theorem list_entails_iff {l : List (Formula Atom)} {f : Formula Atom} : l ⊧ f 
 end Formula
 
 -- First holds.
-theorem exercise02A : ∀ {a b c : Formula Atom}, [ ⟪ ¬a ∨ b ⟫, ⟪ ¬b ∨ c ⟫, ⟪ b ∧ c⟫ ] ⊧ ⟪ ((a ↔ b) ∨ c) ⟫ := by
+theorem sheet01_exercise02A : ∀ {a b c : Formula Atom}, [ ⟪ ¬a ∨ b ⟫, ⟪ ¬b ∨ c ⟫, ⟪ b ∧ c⟫ ] ⊧ ⟪ ((a ↔ b) ∨ c) ⟫ := by
   intro a b c v
   grind
 
 -- Second holds.
-theorem exercise02B : ∀ {a b c : Formula Atom}, [ ⟪ ¬a → b⟫, ⟪ c ∨ a ⟫, ⟪ a → ¬b⟫, ⟪ ¬c ⟫ ] ⊧ ⟪ a ⟫ := by
+theorem sheet01_exercise02B : ∀ {a b c : Formula Atom}, [ ⟪ ¬a → b⟫, ⟪ c ∨ a ⟫, ⟪ a → ¬b⟫, ⟪ ¬c ⟫ ] ⊧ ⟪ a ⟫ := by
   intro a b c v
   grind
 
 -- Third holds.
-theorem exercise02C : ∀ {a b c : Formula Atom}, [ ⟪ (a ∧ ¬b) ∨ (¬a ∧ b) ⟫, ⟪ ¬c ⟫, ⟪ b ⟫, ⟪ ¬(¬a ∨ b)⟫ ] ⊧ ⟪ ¬(a ∨ b) ⟫ := by
+theorem sheet01_exercise02C : ∀ {a b c : Formula Atom}, [ ⟪ (a ∧ ¬b) ∨ (¬a ∧ b) ⟫, ⟪ ¬c ⟫, ⟪ b ⟫, ⟪ ¬(¬a ∨ b)⟫ ] ⊧ ⟪ ¬(a ∨ b) ⟫ := by
   intro a b c v
   grind
 

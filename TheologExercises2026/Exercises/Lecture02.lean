@@ -1,4 +1,5 @@
 import TheologExercises2026.Exercises.Exercise01
+import TheologExercises2026.Exercises.Exercise02
 
 variable {Atom : Type u}
 
@@ -11,70 +12,6 @@ theorem list_entails_iff_unsat (L : List (Formula Atom)) (F : Formula Atom) : L 
   . intro h v v_eval
     simp only [Formula.eval_list_to_formula, not_exists] at h
     grind
-
-instance Formula.instDecidableEq [DecidableEq Atom] : DecidableEq (Formula Atom)
-| .empty, F => by
-  cases F with
-  | empty => apply isTrue; rfl
-  | _ F => apply isFalse; grind
-| .atom p, F => by
-  cases F with
-  | atom q =>
-    by_cases hp : p = q
-    . apply isTrue; rw [hp]
-    . apply isFalse; grind
-  | empty => apply isFalse; grind
-  | _ F => apply isFalse; grind
-| .not F, G => by
-  cases G with
-  | not H =>
-    have aux : p¬ F = p¬ H ↔ F = H := by grind
-    rw [aux]
-    apply instDecidableEq
-  | _ => apply isFalse; grind
-| .and F G, H => by
-  cases H with
-  | and H1 H2 =>
-    have aux : (F p∧ G) = (H1 p∧ H2) ↔ (F = H1) ∧ (G = H2) := by grind
-    rw [aux]
-    have test := instDecidableEq F H1
-    have test2 := instDecidableEq G H2
-    have aux2 := instDecidableAnd (p := F = H1) (q := G = H2)
-    exact aux2
-  | _ => apply isFalse; grind
-| .or F G, H => by
-  cases H with
-  | or H1 H2 =>
-    have aux : (F p∨ G) = (H1 p∨ H2) ↔ (F = H1) ∧ (G = H2) := by grind
-    rw [aux]
-    have test := instDecidableEq F H1
-    have test2 := instDecidableEq G H2
-    have aux2 := instDecidableAnd (p := F = H1) (q := G = H2)
-    exact aux2
-  | _ => apply isFalse; grind
-| .imp F G, H => by
-  cases H with
-  | imp H1 H2 =>
-    have aux : (F p-> G) = (H1 p-> H2) ↔ (F = H1) ∧ (G = H2) := by grind
-    rw [aux]
-    have test := instDecidableEq F H1
-    have test2 := instDecidableEq G H2
-    have aux2 := instDecidableAnd (p := F = H1) (q := G = H2)
-    exact aux2
-  | _ => apply isFalse; grind
-| .eq F G, H => by
-  cases H with
-  | eq H1 H2 =>
-    have aux : (F p↔ G) = (H1 p↔ H2) ↔ (F = H1) ∧ (G = H2) := by grind
-    rw [aux]
-    have test := instDecidableEq F H1
-    have test2 := instDecidableEq G H2
-    have aux2 := instDecidableAnd (p := F = H1) (q := G = H2)
-    exact aux2
-  | _ => apply isFalse; grind
-
-instance [DecidableEq Atom] : LawfulBEq (Formula Atom) := inferInstance
-instance [DecidableEq Atom] : BEq (Formula Atom) := inferInstance
 
 def Formula.has_subformula : Formula Atom -> Formula Atom -> Prop :=
 fun F G => G ∈ F.subformulae
@@ -113,13 +50,43 @@ def Formula.replace_first [DecidableEq Atom] : Formula Atom -> Formula Atom -> F
     if F1.has_subformula G then .eq (F1.replace_first G H) F2
     else .eq F1 (F2.replace_first G H)
 
-variable {p q r v : Atom} [DecidableEq Atom]
+variable {p q r v : Atom}
 
 def F1 : Formula String := ⟪ "H" ∧ "G" ↔ "K" ∧ ¬"H" ⟫
 
 #eval F1.replace_first ⟪ "H" ⟫ ⟪ "T" ⟫
 
+theorem Formula.ersetzungstheorem  [DecidableEq Atom] (F G G' : Formula Atom) (h_eq : G === G') : F.replace_first G G' === F := by
+  induction F with
+  | empty =>
+    unfold replace_first; apply equiv_refl
+  | atom p =>
+    unfold replace_first
+    cases G with
+    | atom r =>
+      simp only [ne_eq, ite_not]
+      unfold equiv at *
+      intro v
+      by_cases h : p = r
+      . simp only [h, ↓reduceIte]
+        specialize h_eq v; symm; exact h_eq
+      . simp only [h, ite_false]
+    | _ => simp only; apply equiv_refl
+  | and F1 F2 h1 h2 =>
+    unfold replace_first
+    by_cases h : F1 = G
+    . simp only [h, ite_true]
+      unfold equiv at *
+      intro v
+      specialize h_eq v
+      grind
+    . simp only [h, ite_false]
+      sorry
+  | _ =>
+  sorry
+
 inductive OnlyAndOrNotFormula (Atom : Type u) : Type u where
+| empty : OnlyAndOrNotFormula Atom
 | atom : Atom -> OnlyAndOrNotFormula Atom
 | and : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
 | or : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
@@ -127,7 +94,7 @@ inductive OnlyAndOrNotFormula (Atom : Type u) : Type u where
 
 def Formula.to_only_andornot : Formula Atom -> OnlyAndOrNotFormula Atom
 | .atom p => .atom p
-| .empty => sorry
+| .empty => .empty
 | .not F => .not F.to_only_andornot
 | .imp F G => .or (.not F.to_only_andornot) G.to_only_andornot
 | .eq F G => .or (.and F.to_only_andornot G.to_only_andornot) (.and (.not F.to_only_andornot) (.not G.to_only_andornot))
@@ -135,6 +102,7 @@ def Formula.to_only_andornot : Formula Atom -> OnlyAndOrNotFormula Atom
 | .or F G => .or F.to_only_andornot G.to_only_andornot
 
 def OnlyAndOrNotFormula.toFormula : OnlyAndOrNotFormula Atom -> Formula Atom
+| .empty => .empty
 | .atom p => .atom p
 | .and F G => .and F.toFormula G.toFormula
 | .or F G => .or F.toFormula G.toFormula
@@ -150,10 +118,32 @@ def Formula.only_andornot : Formula Atom -> Prop
 | .eq F G => F.only_andornot ∧ G.only_andornot
 
 def OnlyAndOrNotFormula.NNF : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
+| .empty => .empty
 | .atom p => .atom p
 | .and F G => .and F.NNF G.NNF
 | .or F G => .or F.NNF G.NNF
+| .not empty => .not empty
 | .not (.not F) => F.NNF
 | .not (.atom p) => .not (.atom p)
 | .not (.and F G) => .or (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
 | .not (.or F G) => .and (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
+
+#eval ⟪ "p" ↔ "q" ⟫.to_only_andornot.toFormula
+
+theorem Formula.eq_onlyAndOrNot : ∀ (F : Formula Atom), F === F.to_only_andornot.toFormula := by
+  intro F
+  unfold equiv
+  intro v
+  induction F with
+  | empty => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]
+  | atom p => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]
+  | not F => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
+  | and F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
+  | or F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
+  | imp F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
+  | eq F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
+
+/-
+c) b∧(a∨b) ∧(¬b∨c) ∧(¬b∨¬c) ∧(¬a∨c)
+d)¬ c→ (¬a∧b∧c) ∨(a∧¬b)
+-/
