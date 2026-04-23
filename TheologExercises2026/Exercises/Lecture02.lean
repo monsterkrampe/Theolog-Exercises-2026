@@ -118,3 +118,42 @@ variable {p q r v : Atom} [DecidableEq Atom]
 def F1 : Formula String := ⟪ "H" ∧ "G" ↔ "K" ∧ ¬"H" ⟫
 
 #eval F1.replace_first ⟪ "H" ⟫ ⟪ "T" ⟫
+
+inductive OnlyAndOrNotFormula (Atom : Type u) : Type u where
+| atom : Atom -> OnlyAndOrNotFormula Atom
+| and : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
+| or : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
+| not : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
+
+def Formula.to_only_andornot : Formula Atom -> OnlyAndOrNotFormula Atom
+| .atom p => .atom p
+| .empty => sorry
+| .not F => .not F.to_only_andornot
+| .imp F G => .or (.not F.to_only_andornot) G.to_only_andornot
+| .eq F G => .or (.and F.to_only_andornot G.to_only_andornot) (.and (.not F.to_only_andornot) (.not G.to_only_andornot))
+| .and F G => .and F.to_only_andornot G.to_only_andornot
+| .or F G => .or F.to_only_andornot G.to_only_andornot
+
+def OnlyAndOrNotFormula.toFormula : OnlyAndOrNotFormula Atom -> Formula Atom
+| .atom p => .atom p
+| .and F G => .and F.toFormula G.toFormula
+| .or F G => .or F.toFormula G.toFormula
+| .not F => .not F.toFormula
+
+def Formula.only_andornot : Formula Atom -> Prop
+| .atom _ => True
+| .empty => True
+| .not F => F.only_andornot
+| .and F G => F.only_andornot ∧ G.only_andornot
+| .or F G => F.only_andornot ∧ G.only_andornot
+| .imp F G => F.only_andornot ∧ G.only_andornot
+| .eq F G => F.only_andornot ∧ G.only_andornot
+
+def OnlyAndOrNotFormula.NNF : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
+| .atom p => .atom p
+| .and F G => .and F.NNF G.NNF
+| .or F G => .or F.NNF G.NNF
+| .not (.not F) => F.NNF
+| .not (.atom p) => .not (.atom p)
+| .not (.and F G) => .or (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
+| .not (.or F G) => .and (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
