@@ -8,6 +8,7 @@ inductive Formula (Atom : Type u) : Type u where
 | eq : Formula Atom -> Formula Atom -> Formula Atom
 deriving DecidableEq, BEq, ReflBEq, LawfulBEq
 
+variable {Atom : Type u}
 
 declare_syntax_cat formula
 syntax str                            : formula
@@ -81,8 +82,6 @@ def allFalse {Atom : Type u} : Valuation Atom := fun _ => false
 def onlyPTrue : Valuation Char := fun c => c = 'P'
 
 namespace Valuation
-
-variable {Atom : Type u}
 
 @[grind]
 def eval (v : Valuation Atom) : Formula Atom -> Bool
