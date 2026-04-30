@@ -166,6 +166,68 @@ def OnlyAndOrNotFormula.NNF : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula At
 | .not (.and F G) => .or (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
 | .not (.or F G) => .and (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
 
+inductive NNFFormula (Atom : Type u) : Type u where
+| empty : NNFFormula Atom
+| atom : Atom -> NNFFormula Atom
+| negatom : Atom -> NNFFormula Atom
+| and : NNFFormula Atom -> NNFFormula Atom -> NNFFormula Atom
+| or : NNFFormula Atom -> NNFFormula Atom -> NNFFormula Atom
+
+def OnlyAndOrNotFormula.toNNF : OnlyAndOrNotFormula Atom -> NNFFormula Atom
+| .not (.atom p) => .negatom p
+| .and F G => .and F.toNNF G.toNNF
+| .or F G => .or F.toNNF G.toNNF
+| .not (.not F) => F.toNNF
+| .not (.and F G) => .or (OnlyAndOrNotFormula.not F).toNNF (OnlyAndOrNotFormula.not G).toNNF
+| .not (.or F G) => .and (OnlyAndOrNotFormula.not F).toNNF (OnlyAndOrNotFormula.not G).toNNF
+| .atom p => .atom p
+| _ => .empty
+
+def NNFFormula.toFormula : NNFFormula Atom -> Formula Atom
+| .empty => .empty
+| .atom p => .atom p
+| .negatom p => .not (.atom p)
+| .or F G => .or F.toFormula G.toFormula
+| .and F G => .and F.toFormula G.toFormula
+
+def Formula.depth : Formula Atom -> Nat
+| .empty => 0
+| .atom _ => 0
+| .not F => F.depth + 1
+| .and F G => (max F.depth G.depth) + 1
+| .or F G => (max F.depth G.depth) + 1
+| .imp F G => (max F.depth G.depth) + 1
+| .eq F G => (max F.depth G.depth) + 1
+
+#eval ⟪ "p" ∨ ("q" ∧ ¬"r") ⟫.depth
+
+def NNFFormula.and_or_distr : NNFFormula Atom -> NNFFormula Atom
+| .and F (.or G H) => .or (.and F G) (.and F H)
+| .and (.or F G) H => .or (.and F H) (.and G H)
+| F => F
+
+-- Doesn't work!
+/--
+def NNFFormula.DNF (F' : NNFFormula Atom) : NNFFormula Atom :=
+match F' with
+| .and (.or F G) H => .or (.and F.DNF G.DNF) (.and G.DNF H.DNF)
+| .and F (.or G H) => .or (.and F.DNF G.DNF) (.and F.DNF H.DNF)
+| .and F (.and G H) => (NNFFormula.and F (NNFFormula.and G.DNF H.DNF).and_or_distr).and_or_distr
+| .or F G => (NNFFormula.or F.DNF G.DNF).and_or_distr
+| F => F
+-/
+
+def F := ⟪ (¬("p" ∨ "q") ∧ (("r" ∨ (¬"q" ∨ "p"))) ∧ "p") ⟫
+def G := ⟪ "p" ∧ ("q" ∧ (¬"q" ∨ "p")) ⟫
+--#eval! F.to_only_andornot.toNNF.DNF.toFormula
+
+def Formula.and_or_distr : Formula Atom -> Formula Atom
+| ⟪ F ∧ (G ∨ H) ⟫ => ⟪ (F ∧ G) ∨ (F ∧ H) ⟫
+| ⟪ (F ∨ G) ∧ H ⟫ => ⟪ (F ∧ H) ∨ (G ∧ H) ⟫
+| F => F
+
+#eval ⟪ ("p" ∨ ¬"r") ∧ ((¬"q" ∨ "p") ∨ "v") ⟫.and_or_distr
+
 #eval ⟪ ("x" → ("p" → "q") → "r" ) ⟫.to_only_andornot.toFormula
 #eval ⟪ ("x" → ("p" → "q") → "r" ) ⟫.to_only_andornot.NNF.toFormula
 
@@ -183,9 +245,27 @@ theorem Formula.eq_onlyAndOrNot : ∀ (F : Formula Atom), F === F.to_only_andorn
   | eq F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
 
 -- Exercise 2a
-#eval ⟪ ¬("p" ↔ "q") ⟫.to_only_andornot.NNF.toFormula
+def F_a := ⟪ ¬("p" ↔ "q") ⟫
+
+#eval F_a.to_only_andornot.NNF.toFormula
+
+def v_a : Valuation String := fun p => match p with
+| "p" => true
+| "q" => false
+| _ => false
+
+theorem a : F_a.satisfiable := by unfold Formula.satisfiable; exists v_a
 
 -- Exercise 2b
-#eval ⟪ ¬(("p" ∨ "q") ∧ (¬"p" ∨ "r") ∧ (¬"q" ∨ "r")) ⟫.to_only_andornot.NNF.toFormula
+def F_b := ⟪ ¬(("p" ∨ "q") ∧ (¬"p" ∨ "r") ∧ (¬"q" ∨ "r")) ⟫
+
+#eval F_b.to_only_andornot.NNF.toFormula
+
+def v_b : Valuation String := fun p => match p with
+| "r" => false
+| "q" => true
+| _ => false
+
+theorem b : F_b.satisfiable := by unfold Formula.satisfiable; exists v_b
 
 end Exercise02

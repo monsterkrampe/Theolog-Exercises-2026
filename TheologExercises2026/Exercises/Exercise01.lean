@@ -131,7 +131,7 @@ infix:50 " ⊧ " => list_entails
 def list_to_formula : List (Formula Atom) -> Formula Atom
 | [] => .empty
 | [f] => f
-| hd::tl => .and hd (list_to_formula tl) --⟪ hd ∧ (list_to_formula tl) ⟫
+| hd::tl => .and hd (list_to_formula tl)
 
 /-
 The following two theorems are currently not required for anything (not even the grinds in exercise02X).
@@ -195,7 +195,7 @@ end Formula
 
 theorem exercise03A : ∀ {p : Formula Atom}, ⟪ ¬¬p ↔ p ⟫.satisfiable := by
   intro p
-  exists (fun _ => true)
+  exists allTrue
   grind
 
 theorem exercise03B : ∀ {p q : Formula Atom}, (⟪ ¬p ∧ ((p ∨ q) ∧ ¬q) ⟫).unsatisfiable := by
