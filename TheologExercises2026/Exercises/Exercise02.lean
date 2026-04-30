@@ -206,21 +206,6 @@ def NNFFormula.and_or_distr : NNFFormula Atom -> NNFFormula Atom
 | .and (.or F G) H => .or (.and F H) (.and G H)
 | F => F
 
--- Doesn't work!
-/--
-def NNFFormula.DNF (F' : NNFFormula Atom) : NNFFormula Atom :=
-match F' with
-| .and (.or F G) H => .or (.and F.DNF G.DNF) (.and G.DNF H.DNF)
-| .and F (.or G H) => .or (.and F.DNF G.DNF) (.and F.DNF H.DNF)
-| .and F (.and G H) => (NNFFormula.and F (NNFFormula.and G.DNF H.DNF).and_or_distr).and_or_distr
-| .or F G => (NNFFormula.or F.DNF G.DNF).and_or_distr
-| F => F
--/
-
-def F := ⟪ (¬("p" ∨ "q") ∧ (("r" ∨ (¬"q" ∨ "p"))) ∧ "p") ⟫
-def G := ⟪ "p" ∧ ("q" ∧ (¬"q" ∨ "p")) ⟫
---#eval! F.to_only_andornot.toNNF.DNF.toFormula
-
 def Formula.and_or_distr : Formula Atom -> Formula Atom
 | ⟪ F ∧ (G ∨ H) ⟫ => ⟪ (F ∧ G) ∨ (F ∧ H) ⟫
 | ⟪ (F ∨ G) ∧ H ⟫ => ⟪ (F ∧ H) ∨ (G ∧ H) ⟫
