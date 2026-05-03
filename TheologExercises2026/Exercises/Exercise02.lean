@@ -130,7 +130,6 @@ theorem IteWithTopAndBotFormula.fromFormula_equiv [Inhabited Atom] :
 
 end Exercise01
 
-section Exercise02
 
 inductive OnlyAndOrNotFormula (Atom : Type u) : Type u where
 | empty : OnlyAndOrNotFormula Atom
@@ -155,23 +154,13 @@ def OnlyAndOrNotFormula.toFormula : OnlyAndOrNotFormula Atom -> Formula Atom
 | .or F G => .or F.toFormula G.toFormula
 | .not F => .not F.toFormula
 
-def OnlyAndOrNotFormula.NNF : OnlyAndOrNotFormula Atom -> OnlyAndOrNotFormula Atom
-| .empty => .empty
-| .atom p => .atom p
-| .and F G => .and F.NNF G.NNF
-| .or F G => .or F.NNF G.NNF
-| .not empty => .not empty
-| .not (.not F) => F.NNF
-| .not (.atom p) => .not (.atom p)
-| .not (.and F G) => .or (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
-| .not (.or F G) => .and (OnlyAndOrNotFormula.not F).NNF (OnlyAndOrNotFormula.not G).NNF
-
 inductive NNFFormula (Atom : Type u) : Type u where
 | empty : NNFFormula Atom
 | atom : Atom -> NNFFormula Atom
 | negatom : Atom -> NNFFormula Atom
 | and : NNFFormula Atom -> NNFFormula Atom -> NNFFormula Atom
 | or : NNFFormula Atom -> NNFFormula Atom -> NNFFormula Atom
+deriving BEq
 
 def OnlyAndOrNotFormula.toNNF : OnlyAndOrNotFormula Atom -> NNFFormula Atom
 | .not (.atom p) => .negatom p
@@ -211,10 +200,87 @@ def Formula.and_or_distr : Formula Atom -> Formula Atom
 | ⟪ (F ∨ G) ∧ H ⟫ => ⟪ (F ∧ H) ∨ (G ∧ H) ⟫
 | F => F
 
+def NNFFormula.onlyAnd : NNFFormula Atom -> Bool
+| .or _ _ => false
+| .and F G => F.onlyAnd && G.onlyAnd
+| _ => true
+
+def NNFFormula.onlyOr : NNFFormula Atom -> Bool
+| .and _ _ => false
+| .or F G => F.onlyOr && G.onlyOr
+| _ => true
+
+def NNFFormula.isDNF : NNFFormula Atom -> Bool
+| .or F G => F.isDNF && G.isDNF
+| .and F G => F.onlyAnd && G.onlyAnd
+| _ => true
+
+def NNFFormula.isKNF : NNFFormula Atom -> Bool
+| .and F G => F.isKNF && G.isKNF
+| .or F G => F.onlyOr && G.onlyOr
+| _ => true
+
+def NNFFormula.and_or_distr_rec : NNFFormula Atom -> NNFFormula Atom
+| .and F (.or G H) => .or (.and F.and_or_distr_rec G.and_or_distr_rec) (.and F.and_or_distr_rec H.and_or_distr_rec)
+| .and (.or F G) H => .or (.and F.and_or_distr_rec H) (.and G.and_or_distr_rec H.and_or_distr_rec)
+| .or F G => .or F.and_or_distr_rec G.and_or_distr_rec
+| .and (.and F G) H => .and (NNFFormula.and F G).and_or_distr_rec H.and_or_distr_rec
+| .and F (.and G H) => .and F.and_or_distr_rec (NNFFormula.and G H).and_or_distr_rec
+| F => F
+
+def NNFFormula.DNF (G : NNFFormula Atom) : NNFFormula Atom :=
+let rec loop : Nat -> NNFFormula Atom -> NNFFormula Atom
+  | 0, F => F.and_or_distr_rec
+  | n+1, F => if F.isDNF then loop 0 F else loop n F.and_or_distr_rec
+loop (2^G.toFormula.atoms.length) G
+
+
+def NNFFormula.KNF (F : NNFFormula Atom) : NNFFormula Atom :=
+(Formula.not (F.DNF).toFormula).to_only_andornot.toNNF
+
+theorem NNFFormula.DNF_and (G H : NNFFormula Atom) : (NNFFormula.and G H).isDNF ↔ G.onlyAnd ∧ H.onlyAnd := by
+  unfold isDNF; grind
+
+theorem NNFFormula.DNF_isDNF (F : NNFFormula Atom) : F.DNF.isDNF := by
+  induction F with
+  | and F1 F2 h1 h2 =>
+    unfold isDNF-- DNF DNF.loop
+    cases h : (F1.and F2).DNF with
+    | and G1 G2 =>
+      simp only [Bool.and_eq_true]
+      sorry
+    | or G1 G2 =>
+      simp only [Bool.and_eq_true]
+
+      sorry
+    | _ => grind
+  | or F1 F2 h1 h2 =>
+    unfold isDNF
+    sorry
+  | _ => sorry
+
+def F := ⟪ (¬("p" ∨ "q") ∧ (("r" ∨ (¬"q" ∨ "p"))) ∧ "p") ⟫
+def G := ⟪ "p" ∧ ("q" ∧ (¬"q" ∨ "p")) ⟫
+
+#eval F.to_only_andornot.toNNF.DNF.toFormula
+#eval F.to_only_andornot.toNNF.DNF.isDNF
+#eval F.to_only_andornot.toNNF.KNF.toFormula
+#eval F.to_only_andornot.toNNF.KNF.isKNF
+#eval F.to_only_andornot.toNNF.KNF.isDNF
+
 #eval ⟪ ("p" ∨ ¬"r") ∧ ((¬"q" ∨ "p") ∨ "v") ⟫.and_or_distr
 
 #eval ⟪ ("x" → ("p" → "q") → "r" ) ⟫.to_only_andornot.toFormula
-#eval ⟪ ("x" → ("p" → "q") → "r" ) ⟫.to_only_andornot.NNF.toFormula
+#eval ⟪ ("x" → ("p" → "q") → "r" ) ⟫.to_only_andornot.toNNF.toFormula
+
+theorem Formula.de_morgan1 (F G : Formula Atom) : ⟪ ¬(F ∧ G) ⟫ === ⟪ ¬F ∨ ¬G ⟫ := by intro v; grind
+theorem Formula.de_morgan2 (F G : Formula Atom) : ⟪ ¬(F ∨ G) ⟫ === ⟪ ¬F ∧ ¬G ⟫ := by intro v; grind
+
+theorem Formula.not_equiv_of_equiv (F G : Formula Atom) : F === G -> F.not === G.not := by
+  intro equiv v
+  unfold Valuation.eval
+  specialize equiv v
+  grind
 
 theorem Formula.eq_onlyAndOrNot : ∀ (F : Formula Atom), F === F.to_only_andornot.toFormula := by
   intro F
@@ -229,10 +295,46 @@ theorem Formula.eq_onlyAndOrNot : ∀ (F : Formula Atom), F === F.to_only_andorn
   | imp F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
   | eq F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
 
+theorem Formula.not_eq_not_NNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.toFormula → ⟪ ¬F ⟫ === ⟪ ¬(F.to_only_andornot.toNNF.toFormula) ⟫ := by
+  intro equiv
+  apply not_equiv_of_equiv
+  exact equiv
+
+theorem Formula.eq_NNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.toFormula := by
+  unfold equiv
+  intro v
+  rw [eq_onlyAndOrNot]
+  induction F with
+  | empty => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF]; rfl
+  | atom p => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF]; rfl
+  | not F h =>
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, Valuation.eval, Bool.not_eq_eq_eq_not, h]
+    sorry
+  | and F G h1 h2 =>
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
+    rfl
+  | or F G h1 h2 =>
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
+    rfl
+  | imp F G h1 h2 =>
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
+
+    sorry
+  | eq F G h1 h2 =>
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
+
+    sorry
+
+
+theorem Formula.eq_DNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.DNF.toFormula := by sorry
+
+
+section Exercise02
+
 -- Exercise 2a
 def F_a := ⟪ ¬("p" ↔ "q") ⟫
 
-#eval F_a.to_only_andornot.NNF.toFormula
+#eval F_a.to_only_andornot.toNNF.toFormula
 
 def v_a : Valuation String := fun p => match p with
 | "p" => true
@@ -244,7 +346,7 @@ theorem a : F_a.satisfiable := by unfold Formula.satisfiable; exists v_a
 -- Exercise 2b
 def F_b := ⟪ ¬(("p" ∨ "q") ∧ (¬"p" ∨ "r") ∧ (¬"q" ∨ "r")) ⟫
 
-#eval F_b.to_only_andornot.NNF.toFormula
+#eval F_b.to_only_andornot.toNNF.toFormula
 
 def v_b : Valuation String := fun p => match p with
 | "r" => false
@@ -252,5 +354,22 @@ def v_b : Valuation String := fun p => match p with
 | _ => false
 
 theorem b : F_b.satisfiable := by unfold Formula.satisfiable; exists v_b
+
+-- Exercise 2c
+def F_c := ⟪ "b" ∧ ("a" ∨ "b") ∧ (¬"b" ∨ "c") ∧ (¬"b" ∨ ¬"c") ∧ (¬"a" ∨ "c") ⟫
+
+#eval F_c.to_only_andornot.toNNF.KNF.toFormula -- hilfe 0_o
+#eval F_c.to_only_andornot.toNNF.isKNF
+
+theorem c : F_c.unsatisfiable := by
+  unfold Formula.unsatisfiable
+  intro contra
+  unfold Formula.satisfiable F_c Valuation.eval at contra
+  grind
+
+-- Exercise 2d
+def F_d := ⟪ ¬("c" → ((¬"a" ∧ "b" ∧ "c") ∨ ("a" ∧ ¬"b"))) ⟫
+
+#eval F_d.to_only_andornot.toNNF.DNF.toFormula
 
 end Exercise02
