@@ -40,8 +40,8 @@ def clauses : List (Clause Char) := [[.neg 'a', .pos 'b'], [.neg 'b', .pos 'c'],
 
 section Exercise04B
 
-structure HornClause (Atom : Type u) where 
-  head : Option Atom 
+structure HornClause (Atom : Type u) where
+  head : Option Atom
   body : List Atom
 
 -- TODO: translation into regular clausest
@@ -55,10 +55,10 @@ def intersect (v1 v2 : Valuation Atom) : Valuation Atom := fun a => v1 a && v2 a
 
 end Valuation
 
-def Formula.disjunction_from_list : List (Formula Atom) -> Formula Atom 
-| .nil => .empty -- TODO: this should be .bot once we have it!
-| .cons hd tl => 
-  match tl with 
+def Formula.disjunction_from_list : List (Formula Atom) -> Formula Atom
+| .nil => .bot
+| .cons hd tl =>
+  match tl with
   | .nil => hd
   | .cons hd2 tl =>
     .or hd (disjunction_from_list (hd2 :: tl))
@@ -66,18 +66,22 @@ def Formula.disjunction_from_list : List (Formula Atom) -> Formula Atom
 namespace HornClause
 
 def toFormula (hc : HornClause Atom) : Formula Atom :=
-  match hc.head with 
+  match hc.head with
   | .none => Formula.disjunction_from_list (hc.body.map (fun a => .not (.atom a)))
   | .some head => Formula.disjunction_from_list ((.atom head) :: hc.body.map (fun a => .not (.atom a)))
 
-theorem eval_true_for_intersection_of_both_true {hc : HornClause Atom} {v1 v2 : Valuation Atom} 
+theorem eval_true_for_intersection_of_both_true {hc : HornClause Atom} {v1 v2 : Valuation Atom}
     (v1_true : v1.eval hc.toFormula) (v2_true : v2.eval hc.toFormula) :
-    (v1.intersect v2).eval hc.toFormula := by 
-  induction eq : hc.body generalizing hc with 
-  | nil => 
+    (v1.intersect v2).eval hc.toFormula := by
+  induction eq : hc.body generalizing hc with
+  | nil =>
     cases head_eq : hc.head with
-    | none => simp only [toFormula, eq, List.map_nil, Formula.disjunction_from_list]; grind
-    | some head => 
+    | none =>
+      simp only [toFormula, eq, List.map_nil, Formula.disjunction_from_list];
+      simp [head_eq]
+
+      sorry
+    | some head =>
       have hc_eq : hc.toFormula = .atom head := by simp only [toFormula, head_eq, eq, List.map_nil, Formula.disjunction_from_list]
       grind
   | cons hd tl ih =>
@@ -87,46 +91,45 @@ theorem eval_true_for_intersection_of_both_true {hc : HornClause Atom} {v1 v2 : 
 
 end HornClause
 
-theorem sheet03_exercise04_h1 : ∀ hc : HornClause String, ¬ hc.toFormula.equiv ⟪ "p" ∨ "q" ⟫ := by 
+theorem sheet03_exercise04_h1 : ∀ hc : HornClause String, ¬ hc.toFormula.equiv ⟪ "p" ∨ "q" ⟫ := by
   intro hc contra
-  let v1 : Valuation String := fun a => match a with 
+  let v1 : Valuation String := fun a => match a with
     | "p" => true
     | "q" => false
     | _ => true
-  let v2 : Valuation String := fun a => match a with 
+  let v2 : Valuation String := fun a => match a with
     | "p" => false
     | "q" => true
     | _ => true
-  cases eval_v1 : v1.eval hc.toFormula 
+  cases eval_v1 : v1.eval hc.toFormula
   . specialize contra v1; grind
-  cases eval_v2 : v2.eval hc.toFormula 
+  cases eval_v2 : v2.eval hc.toFormula
   . specialize contra v2; grind
   specialize contra (v1.intersect v2)
   rw [HornClause.eval_true_for_intersection_of_both_true eval_v1 eval_v2] at contra
   grind
 
-theorem sheet03_exercise04_h2 : {head := none, body := ["p", "q"] : HornClause String}.toFormula.equiv ⟪ ¬ ("p" ∧ "q") ⟫ := by 
+theorem sheet03_exercise04_h2 : {head := none, body := ["p", "q"] : HornClause String}.toFormula.equiv ⟪ ¬ ("p" ∧ "q") ⟫ := by
   intro v
   grind [HornClause.toFormula, Formula.disjunction_from_list]
 
-theorem sheet03_exercise04_h3 : ∀ hc : HornClause String, ¬ hc.toFormula.equiv ⟪ "p" ↔ ¬"q" ⟫ := by 
+theorem sheet03_exercise04_h3 : ∀ hc : HornClause String, ¬ hc.toFormula.equiv ⟪ "p" ↔ ¬"q" ⟫ := by
   -- same proof as sheet03_exercise04_h1
   intro hc contra
-  let v1 : Valuation String := fun a => match a with 
+  let v1 : Valuation String := fun a => match a with
     | "p" => true
     | "q" => false
     | _ => true
-  let v2 : Valuation String := fun a => match a with 
+  let v2 : Valuation String := fun a => match a with
     | "p" => false
     | "q" => true
     | _ => true
-  cases eval_v1 : v1.eval hc.toFormula 
+  cases eval_v1 : v1.eval hc.toFormula
   . specialize contra v1; grind
-  cases eval_v2 : v2.eval hc.toFormula 
+  cases eval_v2 : v2.eval hc.toFormula
   . specialize contra v2; grind
   specialize contra (v1.intersect v2)
   rw [HornClause.eval_true_for_intersection_of_both_true eval_v1 eval_v2] at contra
   grind
 
 end Exercise04B
-

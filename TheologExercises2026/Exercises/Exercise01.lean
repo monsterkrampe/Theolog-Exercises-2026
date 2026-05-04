@@ -1,5 +1,6 @@
 inductive Formula (Atom : Type u) : Type u where
-| empty : Formula Atom
+| top : Formula Atom
+| bot : Formula Atom
 | atom : Atom -> Formula Atom
 | not : Formula Atom -> Formula Atom
 | and : Formula Atom -> Formula Atom -> Formula Atom
@@ -33,7 +34,8 @@ macro_rules
 | `(⟪ ( $F ) ⟫) => `(⟪ $F ⟫)
 
 def Formula.toString {Atom : Type u} [ToString Atom] : Formula Atom -> String
-| .empty => "⊤"
+| .top => "⊤"
+| .bot => "⊥"
 | .atom a => ToString.toString a
 | .not f => s!"¬{toString f}"
 | .and f g => s!"({toString f} ∧ {toString g})"
@@ -63,7 +65,8 @@ namespace Formula
 -- In the lecture this is a set. We consider a list of subformulae here to avoid introducing a set definition.
 -- Opposed to the set, the list might have duplicates but this should not matter much for our considerations.
 def subformulae (f : Formula Atom) : List (Formula Atom) := match f with
-  | .empty => []
+  | .top => []
+  | .bot => []
   | .atom _ => [f]
   | .not g => f :: g.subformulae
   | .and g h => f :: g.subformulae ++ h.subformulae
@@ -85,7 +88,8 @@ namespace Valuation
 
 @[grind]
 def eval (v : Valuation Atom) : Formula Atom -> Bool
-| .empty => true
+| .top => true
+| .bot => false
 | .atom a => v a
 | .not f => !v.eval f
 | .and f g => v.eval f && v.eval g
@@ -128,7 +132,7 @@ def list_entails (l : List (Formula Atom)) (f : Formula Atom) : Prop := ∀ v : 
 infix:50 " ⊧ " => list_entails
 
 def list_to_formula : List (Formula Atom) -> Formula Atom
-| [] => .empty
+| [] => .top
 | [f] => f
 | hd::tl => .and hd (list_to_formula tl)
 
@@ -215,7 +219,8 @@ variable {Atom : Type u}
 namespace Formula
 
 def size : Formula Atom -> Nat
-| .empty => 0
+| .top => 0
+| .bot => 0
 | .atom _ => 1
 | .not f => f.size + 1
 | .and f g => f.size + g.size + 1
@@ -228,7 +233,8 @@ def size : Formula Atom -> Nat
 #eval exampleFormula.size
 
 def atoms : Formula Atom -> List Atom
-| .empty => []
+| .top => []
+| .bot => []
 | .atom a => [a]
 | .not f => f.atoms
 | .and f g => f.atoms ++ g.atoms
@@ -240,7 +246,8 @@ def atoms : Formula Atom -> List Atom
 
 theorem atom_sublist_subformulae {f : Formula Atom} : List.Sublist (f.atoms.map .atom) f.subformulae := by
   induction f with
-  | empty => simp [atoms]
+  | top => simp [atoms]
+  | bot => simp [atoms]
   | atom _ => simp [atoms, subformulae]
   | not f ih => simp only [atoms, subformulae]; grind
   | and f g ih_f ih_g => simp only [atoms, subformulae]; grind
@@ -252,13 +259,13 @@ end Formula
 
 theorem sheet01_exercise04B {f : Formula Atom} : f.subformulae.length ≤ f.size := by
   induction f with
-  | empty => simp [Formula.subformulae, Formula.size]
   | atom _ => simp [Formula.subformulae, Formula.size]
   | not f ih => simpa [Formula.subformulae, Formula.size] using ih
   | and f g ih_f ih_g => simp only [Formula.subformulae, Formula.size]; grind
   | or f g ih_f ih_g => simp only [Formula.subformulae, Formula.size]; grind
   | imp f g ih_f ih_g => simp only [Formula.subformulae, Formula.size]; grind
   | eq f g ih_f ih_g => simp only [Formula.subformulae, Formula.size]; grind
+  | _ => simp [Formula.subformulae, Formula.size]
 
 -- Note that this depends on exercise04B
 theorem sheet01_exercise04A {f : Formula Atom} : f.atoms.length <= f.size := by
