@@ -81,11 +81,8 @@ theorem eval_true_for_intersection_of_both_true {hc : HornClause Atom} {v1 v2 : 
   | nil =>
     cases head_eq : hc.head with
     | none =>
-      simp only [toFormula, eq, List.map_nil, Formula.disjunction_from_list];
-      simp [head_eq]
-      unfold Valuation.intersect
-
-      sorry
+      simp only [toFormula, head_eq, eq, List.map_nil, Formula.disjunction_from_list] at v1_true
+      grind
     | some head =>
       have hc_eq : hc.toFormula = .atom head := by simp only [toFormula, head_eq, eq, List.map_nil, Formula.disjunction_from_list]
       grind
