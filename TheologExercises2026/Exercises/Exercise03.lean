@@ -65,6 +65,10 @@ def Formula.disjunction_from_list : List (Formula Atom) -> Formula Atom
 
 namespace HornClause
 
+def empty : HornClause Atom where
+  head := none
+  body := .nil
+
 def toFormula (hc : HornClause Atom) : Formula Atom :=
   match hc.head with
   | .none => Formula.disjunction_from_list (hc.body.map (fun a => .not (.atom a)))
@@ -79,6 +83,7 @@ theorem eval_true_for_intersection_of_both_true {hc : HornClause Atom} {v1 v2 : 
     | none =>
       simp only [toFormula, eq, List.map_nil, Formula.disjunction_from_list];
       simp [head_eq]
+      unfold Valuation.intersect
 
       sorry
     | some head =>

@@ -259,7 +259,11 @@ theorem NNFFormula.DNF_isDNF (F : NNFFormula Atom) : F.DNF.isDNF := by
     cases h : (F1.and F2).DNF with
     | and G1 G2 =>
       simp only [Bool.and_eq_true]
-      sorry
+      constructor
+      . unfold DNF DNF.loop at h
+
+        sorry
+      . sorry
     | or G1 G2 =>
       simp only [Bool.and_eq_true]
 
@@ -306,6 +310,18 @@ theorem Formula.eq_onlyAndOrNot : ∀ (F : Formula Atom), F === F.to_only_andorn
   | eq F G h1 h2 => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]; grind
   | _ => simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula]
 
+theorem test (F G : OnlyAndOrNotFormula Atom) : (F.and G).toFormula === (F.and G).toNNF.toFormula -> (F.and G).not.toFormula === (F.and G).not.toNNF.toFormula := by
+  intro equiv v
+  specialize equiv v
+  have aux : v.eval (F.and G).not.toFormula = v.eval (F.and G).toFormula.not := by rfl
+  --have aux2 : v.eval (F.and G).not.toNNF.toFormula = v.eval (F.and G).toNNF.toFormula.not := by sorry
+  simp only [aux, Valuation.eval]--, equiv]
+  apply Classical.byContradiction
+  intro contra
+  simp at contra
+
+  sorry
+
 theorem Formula.not_eq_not_NNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.toFormula → ⟪ ¬F ⟫ === ⟪ ¬F ⟫.to_only_andornot.toNNF.toFormula := by
   intro equiv v
   induction F with
@@ -347,7 +363,7 @@ theorem Formula.eq_NNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.toFor
     simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
     rfl
   | imp F G h1 h2 =>
-    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF, Valuation.eval, h1, h2]
+    simp only [to_only_andornot, OnlyAndOrNotFormula.toFormula, OnlyAndOrNotFormula.toNNF]--, Valuation.eval, h1, h2]
 
     sorry
   | eq F G h1 h2 =>
@@ -355,6 +371,37 @@ theorem Formula.eq_NNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.toFor
 
     sorry
 
+theorem OnlyAndOrNotFormula.eq_NNF' (F : OnlyAndOrNotFormula Atom) : F.toFormula === F.toNNF.toFormula := by
+  unfold Formula.equiv
+  intro v
+  induction F with
+  | top =>
+    simp only [toFormula, toNNF, NNFFormula.toFormula]
+  | bot => simp only [toFormula, toNNF, NNFFormula.toFormula]
+  | atom => simp only [toFormula, toNNF, NNFFormula.toFormula]
+  | and => simp only [toFormula, toNNF, NNFFormula.toFormula, Valuation.eval]; grind
+  | or => simp only [toFormula, toNNF, NNFFormula.toFormula, Valuation.eval]; grind
+  | not G ih =>
+    --simp only [toFormula, Valuation.eval]
+    induction hG : G with
+    | top => sorry
+    | bot => sorry
+    | atom => sorry
+    | and G1 G2 h1 h2 =>
+      simp only [toNNF, toFormula]
+      rw [Formula.de_morgan1]
+      rw [hG] at ih
+      have aux : (G1.not.and G2.not).toNNF = G1.not.toNNF.and G2.not.toNNF := by
+        conv =>
+          lhs
+          unfold toNNF
+
+
+
+
+      sorry
+    | _ =>
+      sorry
 
 theorem Formula.eq_DNF (F : Formula Atom) : F === F.to_only_andornot.toNNF.DNF.toFormula := by sorry
 
