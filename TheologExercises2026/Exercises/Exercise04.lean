@@ -247,11 +247,24 @@ def unit_clauses : HornFormula Atom -> List (HornClause Atom)
 | [] => []
 | C::H' => if C.is_unit_clause then C::(unit_clauses H') else unit_clauses H'
 
-def unit_propagation [BEq Atom] [LawfulBEq (HornClause Atom)] : HornFormula Atom -> HornFormula Atom
-| [] => []
-| H => match H.unit_clauses with
+theorem unit_clauses_sub {H : HornFormula Atom} : H.unit_clauses ⊆ H := by
+  induction H <;> (unfold unit_clauses; grind)
+
+theorem is_unit_clause_of_mem_unit_clauses {C : HornClause Atom} {H : HornFormula Atom} : C ∈ H.unit_clauses -> C.is_unit_clause := by
+  induction H <;> (unfold unit_clauses; grind)
+
+def unit_propagation [BEq Atom] [LawfulBEq Atom] (H : HornFormula Atom) : HornFormula Atom :=
+  match eq : H.unit_clauses with
   | [] => H
-  | C::_ => unit_propagation (H.unit C)
+  | C::_ =>
+    have _termination : (H.unit C).length < H.length := by
+      suffices C ∈ H.unit_clauses by
+        apply unit_lt -- NOTE: this requires LawfulBEq Atom; I did not check why
+        . exact is_unit_clause_of_mem_unit_clauses this
+        . exact unit_clauses_sub this
+      simp [eq]
+    unit_propagation (H.unit C)
+termination_by H.length
 
 end HornFormula
 
