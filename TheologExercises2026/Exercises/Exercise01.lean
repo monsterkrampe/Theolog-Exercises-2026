@@ -23,6 +23,9 @@ syntax " (" formula ") "             : formula
 
 syntax " ⟪ " formula " ⟫ " : term
 
+notation:70 "⊥" => Formula.bot
+notation:70 "⊤" => Formula.top
+
 macro_rules
 | `(⟪ $p:str ⟫) => `(Formula.atom $p)
 | `(⟪ $p:ident ⟫) => `($p)
