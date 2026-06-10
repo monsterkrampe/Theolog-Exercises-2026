@@ -206,6 +206,11 @@ def NNFFormula.and_or_distr : NNFFormula Atom -> NNFFormula Atom
 | .and (.or F G) H => .or (.and F H) (.and G H)
 | F => F
 
+def NNFFormula.or_and_distr : NNFFormula Atom -> NNFFormula Atom
+| .or F (.and G H) => .and (.or F G) (.or F H)
+| .or (.and F G) H => .and (.or F H) (.or G H)
+| F => F
+
 def Formula.and_or_distr : Formula Atom -> Formula Atom
 | ⟪ F ∧ (G ∨ H) ⟫ => ⟪ (F ∧ G) ∨ (F ∧ H) ⟫
 | ⟪ (F ∨ G) ∧ H ⟫ => ⟪ (F ∧ H) ∨ (G ∧ H) ⟫
@@ -230,6 +235,14 @@ def NNFFormula.isKNF : NNFFormula Atom -> Bool
 | .and F G => F.isKNF && G.isKNF
 | .or F G => F.onlyOr && G.onlyOr
 | _ => true
+
+def NNFFormula.or_and_distr_rec : NNFFormula Atom -> NNFFormula Atom
+| .or F (.and G H) => .and (.or F.or_and_distr_rec G.or_and_distr_rec) (.or F.or_and_distr_rec H.or_and_distr_rec)
+| .or (.and F G) H => .and (.or F.or_and_distr_rec H) (.or G.or_and_distr_rec H.or_and_distr_rec)
+| .and F G => .and F.or_and_distr_rec G.or_and_distr_rec
+| .or (.or F G) H => .or (NNFFormula.or F G).or_and_distr_rec H.or_and_distr_rec
+| .or F (.or G H) => .or F.or_and_distr_rec (NNFFormula.or G H).or_and_distr_rec
+| F => F
 
 def NNFFormula.and_or_distr_rec : NNFFormula Atom -> NNFFormula Atom
 | .and F (.or G H) => .or (.and F.and_or_distr_rec G.and_or_distr_rec) (.and F.and_or_distr_rec H.and_or_distr_rec)
@@ -450,3 +463,19 @@ def F_d := ⟪ ¬("c" → ((¬"a" ∧ "b" ∧ "c") ∨ ("a" ∧ ¬"b"))) ⟫
 #eval F_d.to_only_andornot.toNNF.DNF.toFormula
 
 end Exercise02
+
+
+namespace NNFFormula
+
+def atoms : NNFFormula Atom -> List Atom
+| .atom p => [p]
+| .negatom p => [p]
+| .or F G => F.atoms ++ G.atoms
+| .and F G => F.atoms ++ G.atoms
+| _ => []
+
+def new_atom (F : NNFFormula Nat) : Nat := match F.atoms with
+| [] => 0
+| a::l => (a::l).max (by grind) + 1
+
+end NNFFormula
