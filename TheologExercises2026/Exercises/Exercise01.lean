@@ -19,7 +19,7 @@ syntax:40 formula:40 " ∧ " formula:41 : formula
 syntax:50 "¬"formula:50               : formula
 syntax:20 formula:20 " → " formula:21 : formula
 syntax:10 formula:10 " ↔ " formula:11 : formula
-syntax " (" formula ") "             : formula
+syntax " (" formula ") "              : formula
 
 syntax " ⟪ " formula " ⟫ " : term
 
