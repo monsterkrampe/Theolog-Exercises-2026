@@ -1,9 +1,3 @@
-/-
-TODO:
-- allgemeines resultat (summe >= start)
-- toString funktionen schöner machen (letztes leerzeichen irgendwie wegmachen 0_o)
--/
-
 structure FuncSymbol (α : Type u) where
 arity : Nat
 name : α
@@ -38,22 +32,6 @@ theorem size_sum_ge_start (n : Nat) (f : Fin n -> Term α) : ∀ start, Fin.fold
     grind
 
 theorem size_gt_zero : (T : Term α) -> T.size > 0 := by intro T; unfold size; grind
-
-/-
-theorem size_gt_one' (n : Nat) (hn : n > 0) (f : FuncSymbol Nat) (arity : f.arity = n) (ts : Fin f.arity → Term α) : (Term.func f ts).size > 1 := by
-  unfold size
-  cases n with
-  | zero => grind
-  | succ n =>
-    rw [arity]
-    rw [Fin.foldl_succ]
-    let f' : Fin n -> Term α := fun x => f x.succ
-  --simp only [gt_iff_lt, Nat.lt_add_right_iff_pos]
-    have aux := size_sum_ge_start n f' 0
-
-
-    sorry
--/
 
 theorem size_gt_one  {α : Type u} (i : α) (n : Nat) (n_gt : n > 0) (F : FuncSymbol α) (F_eq : F = FuncSymbol.mk n i) (t : Fin F.arity -> Term α) : (Term.func F t).size > 1 := by
   suffices ∀ n (f : Fin n -> Term α) start, Fin.foldl n (fun l x => l + (f x).size) start ≥ start by
@@ -97,38 +75,9 @@ instance [ToString α] : ToString (Term α) where
 
 end Term
 
-def x0 := Term.var 0
-def x1 := Term.var 1
-def x2 := Term.var 2
-/-def k := [x0, x2]
-def l := [x0, x1, x2, (Term.from_list 0 k)]
-def t0 := Term.from_list 0 k
-def t1 := Term.from_list 1 l
-#eval! t1--.toString
-#eval t1.vars
-#eval t1.size
-#eval Term.make_constant 0
--/
-
-
 structure PredSymbol (α : Type u) where
 arity : Nat
 name : α
-
-/-
-inductive Formula
-| atom (P : PredSymbol α) : (Fin P.arity -> Term Nat) -> Formula
-| not : Formula -> Formula
-| and  : Formula -> Formula -> Formula
-| or : Formula -> Formula -> Formula
-| eq : Formula -> Formula -> Formula
-| imp : Formula -> Formula -> Formula
-| for_all : Nat -> Formula -> Formula
-| éxists : Nat -> Formula -> Formula
--/
-
-
--- ❰ μ ∎ ← γ
 
 abbrev Tuple (n : Nat) (α : Type u) := Fin n -> α
 
@@ -155,18 +104,12 @@ namespace Lean
 
 macro_rules
 | `(ₜ( $elems,* )) => do `(Tuple.from_list [$(elems),*])
-| `( $p:ident ❰ $elems,* ❱) => do `(from_pred [$(elems),*] $(mkIdent p.getId)) --(by simp [$p]; grind))
 
 #eval ₜ(1, 2, 3)
 #check ₜ('a','b')
-def P1 := {arity := 2, name := 1 : PredSymbol Nat}
-#check P1 ❰1, 2❱
 
 
 end Lean
-
-
-
 
 inductive Formula (P T : Type u) : Type u
 | atom (p : PredSymbol P) : (Fin p.arity -> Term T) -> Formula P T
@@ -182,7 +125,7 @@ variable {P T : Type u}
 
 namespace Formula
 
-def atom_from_list (p : PredSymbol P) (l : List (Term T)) (a_eq : p.arity = l.length) : Formula P T:=
+def atom_from_list (p : PredSymbol P) (l : List (Term T)) (a_eq : p.arity = l.length) : Formula P T :=
   .atom p (fun n => l.get (n.cast a_eq))
 
 def variables : Formula P T -> List T
@@ -258,24 +201,34 @@ end Interpretation
 
 def P0 := {name := 0, arity := 2 : PredSymbol Nat}
 
+def x0 := Term.var 0
+def x1 := Term.var 1
+def x2 := Term.var 2
+
 def φ1 : (Formula Nat Nat) := .for_all 0 (.for_all 1 (.eq (Formula.atom_from_list P0 [x0, x1] (by simp only [P0]; grind)) (Formula.atom_from_list P0 [x0, x1] (by simp only [P0]; grind))))
 #eval φ1
 
 def t_1 : Fin P0.arity -> Nat := from_pred [0,1] P0 (by simp [P0])
-
-def t_2 := P0❰1,0❱
-
-def t_3 := P0❰1,1❱
 
 def from_list_with_arity {α : Type u} (n : Nat) (l : List α) (eq : n = l.length) : Fin n → α :=
   fun x => l.get (x.cast eq)
 
 def test := from_list_with_arity P0.arity [1,0] (by simp only [P0]; grind)
 
+instance : OfNat (Fin P0.arity) i := by
+
+  sorry
+
+def t_1' : Fin P0.arity -> Nat := fun n => match n with
+| 0 => 1
+| 1 => 0
+
+#check t_1'
+
 def I1 : Interpretation Nat Nat Nat where
 f_Terms := fun _ _ => 0                --- 0_o
 f_Pred := fun p t => match p,t with
-| P0, t => t = test  --∨ t = t_2 ∨ t = t_3
+| P0, t => t = t_1'  --∨ t = t_2 ∨ t = t_3
 | _, _ => False
 
 def Z1 : Assignment Nat (Fin 2) := fun _ => 0
@@ -290,72 +243,42 @@ theorem test : I1.eval Z1 φ1 := by
 
 #eval φ1
 
-declare_syntax_cat func_term
-declare_syntax_cat var
+
 declare_syntax_cat formula
 declare_syntax_cat p_atom
-syntax ident                                      : func_term
-syntax (name := func) ident "(" withoutPosition(func_term,*,?) ")" : func_term
-syntax (name := atom) ident "(" withoutPosition(func_term,*,?) ")"     : p_atom
-syntax p_atom                                       : formula
-syntax:30 formula:30 " ∨ " formula:31               : formula
-syntax:40 formula:40 " ∧ " formula:41               : formula
-syntax:50 "¬"formula:50                             : formula
-syntax:20 formula:20 " → " formula:21               : formula
-syntax:10 formula:10 " ↔ " formula:11               : formula
-syntax:1 "∃" ident "." formula:2                   : formula
-syntax:1 "∀" ident "." formula:2                   : formula
-syntax " (" formula ") "                            : formula
-syntax "⌜" formula "⌟"                              : term
+syntax (name := atom) ident "(" withoutPosition(term,*,?) ")"     : p_atom
+syntax p_atom                                                     : formula
+syntax:50 formula:50 " ∨ " formula:51                             : formula
+syntax:60 formula:60 " ∧ " formula:61                             : formula
+syntax:70 "¬"formula:70                                           : formula
+syntax:40 formula:40 " → " formula:41                             : formula
+syntax:30 formula:30 " ↔ " formula:31                             : formula
+syntax:20 "∃" ident "." formula:21                                : formula
+syntax:20 "∀" ident "." formula:21                                : formula
+syntax " (" formula ") "                                          : formula
+syntax "⌜" formula "⌟"                                            : term
 
-namespace Lean
-
-@[macro func] def func_term_macro : Macro
---| `(func_term | $id:ident( $elems,* )) => `(Term.from_list $id [$(elems),*].map (fun x => func_term_macro x))
-| _ => Macro.throwUnsupported
-
-/-
-@[macro atom] def atom_macro' : Macro
-| `(⌜ $p_sym:ident( $ts,* )⌟) => do
-  --let terms := ts.getElems.map (fun x => func_term_macro x)
-  `(Formula.atom_from_list $p_sym ($ts.getElems.map (fun x => func_term_macro x)))
-| _ => Macro.throwUnsupported
-
-@[macro atom] def atom_macro : Macro
-| `(⌜ $p_sym:ident( $ts,* )⌟) => do
-  let init := `([])
-  let terms := ts.getElems.foldl (init := init) fun
-    | `($x:ident) => `(Term.var $x)
-    | `(func_term | $id:ident( $args,* )) => func_term_macro `(func_term | $id:ident( $args,* ))
-    | _ => Macro.throwUnsupported
-  `(Formula.atom_from_list $p_sym $terms)
-| _ => Macro.throwUnsupported
--/
-
-
-end Lean
 
 macro_rules
---| `(⌜ $c:func_term ⌟) =>
---| `(⌜ $p:var ⌟) => `($p)
---| `(⌜ $p_sym:ident( $elems,* )⌟) => do `(Formula.atom_from_list $p_sym [$(elems),*] (by unfold $p_sym; grind))
-| `(⌜ ¬$F:formula ⌟)             => `(Formula.not ⌜ $F ⌟)
-| `(⌜ $F:formula ∨ $G:formula ⌟) => `(Formula.or (⌜ $F ⌟) (⌜ $G ⌟))
-| `(⌜ $F:formula ∧ $G:formula ⌟) => `(Formula.and (⌜ $F ⌟) (⌜ $G ⌟))
-| `(⌜ $F:formula → $G:formula ⌟) => `(Formula.imp (⌜ $F ⌟) (⌜ $G ⌟))
-| `(⌜ $F:formula ↔ $G:formula ⌟) => `(Formula.eq (⌜ $F ⌟) (⌜ $G ⌟))
-| `(⌜ ∃ $p:ident . ($F:formula) ⌟) => `(Formula.éxists $p ⌜ $F ⌟)
-| `(⌜ ∀ $p:ident . ($F:formula) ⌟) => `(Formula.for_all $p ⌜ $F ⌟)
+| `(⌜ $p_sym:ident( $elems,* )⌟)  => do `(Formula.atom_from_list $p_sym [$(elems),*] (by unfold $p_sym; grind))
+| `(⌜ ¬$F:formula ⌟)              => `(Formula.not ⌜ $F ⌟)
+| `(⌜ $F:formula ∨ $G:formula ⌟)  => `(Formula.or (⌜ $F ⌟) (⌜ $G ⌟))
+| `(⌜ $F:formula ∧ $G:formula ⌟)  => `(Formula.and (⌜ $F ⌟) (⌜ $G ⌟))
+| `(⌜ $F:formula → $G:formula ⌟)  => `(Formula.imp (⌜ $F ⌟) (⌜ $G ⌟))
+| `(⌜ $F:formula ↔ $G:formula ⌟)  => `(Formula.eq (⌜ $F ⌟) (⌜ $G ⌟))
+| `(⌜ ∃ $p:ident. ($F:formula) ⌟) => `(Formula.éxists $p (⌜ $F ⌟))
+| `(⌜ ∀ $p:ident. ($F:formula) ⌟) => `(Formula.for_all $p (⌜ $F ⌟))
 | `(⌜ ( $F ) ⌟) => `(⌜ $F ⌟)
 
+def y0 := 0
+def y1 := 1
+def Y0 := Term.var y0
+def Y1 := Term.var y1
+def Y2 := Term.var 2
 
-def x : Term Nat := .var 1
-def y := Term.var 2
-def z := Term.var 0
---#check  ⌜ P0(y,x) ∨ P0(z,z) ⌟
---#check ⌜ ∀z . P0(y,x) ⌟
+def f1 := {arity := 3, name := 1 : FuncSymbol Nat}
+def T1 := Term.from_list f1 [Y1, Y2, Y0] (by unfold f1; grind)
+#eval T1
 
-def f : FuncSymbol String where
-arity := 1
-name := "F"
-def a := 0
+def F : Formula Nat Nat := ⌜ ∀y0. (∃y1. (P0(T1,Y1) → P0(Y1,Y0))) ⌟
+#eval F
