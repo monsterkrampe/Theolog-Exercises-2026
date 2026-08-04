@@ -2,4 +2,8 @@ import TheologExercises2026.Exercises.Exercise01
 import TheologExercises2026.Exercises.Exercise02
 import TheologExercises2026.Exercises.Exercise03
 import TheologExercises2026.Exercises.Exercise04
+import TheologExercises2026.Exercises.Exercise07
+
+import TheologExercises2026.WorkInProgress.NNF
+import TheologExercises2026.WorkInProgress.UnitPropagation
 

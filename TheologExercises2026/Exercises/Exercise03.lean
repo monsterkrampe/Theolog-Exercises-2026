@@ -43,6 +43,7 @@ section Exercise04B
 structure HornClause (Atom : Type u) where
   head : Option Atom
   body : List Atom
+deriving DecidableEq
 
 -- TODO: translation into regular clausest
 

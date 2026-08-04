@@ -55,6 +55,8 @@ def TrueQBF [DecidableEq Atom] (l : List (Quantor × Atom)) (F : Formula Atom) :
   | ∃ => TrueQBF l' (F.replace_atom_bot (t.snd)) || TrueQBF l' (F.replace_atom_top (t.snd))
   | ∀ => TrueQBF l' (F.replace_atom_bot (t.snd)) && TrueQBF l' (F.replace_atom_top (t.snd))
 
+section Exercise05
+
 #eval TrueQBF [(∃, "p1")] ⟪ "p1" ⟫
 #eval TrueQBF [(∀, "p1")] ⟪ "p1" ⟫
 #eval TrueQBF [(∃, "p1")] ⟪ "⊥" ⟫
@@ -63,3 +65,5 @@ def TrueQBF [DecidableEq Atom] (l : List (Quantor × Atom)) (F : Formula Atom) :
 #eval TrueQBF [(∀, "p1"), (∀, "p2"), (∃, "p3"), (∀, "p4")] ⟪ (("p1" ∧ "p2") → "p4") ∨ ¬"p3" ⟫
 #eval TrueQBF [(∀, "p1"), (∃, "p2")] ⟪ "p2" ∧ "p1" ⟫
 #eval ⟪ "p2" ∧ "p1" ⟫.replace_atom_bot "p2"
+
+end Exercise05

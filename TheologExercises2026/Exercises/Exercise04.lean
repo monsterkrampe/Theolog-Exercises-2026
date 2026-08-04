@@ -2,29 +2,6 @@ import TheologExercises2026.Exercises.Exercise03
 
 def HornFormula (Atom : Type u) := List (HornClause Atom)
 
-instance [BEq Atom] (H : HornFormula Atom) : Decidable (H = []) := List.instDecidableEqNil H
-
-instance [BEq Atom] : BEq (HornClause Atom) where
-beq := fun C1 C2 => C1.head == C2.head && C1.body == C2.body
-
-instance [BEq Atom] [LawfulBEq Atom] : LawfulBEq (HornClause Atom) where
-rfl := by
-  intro C
-  unfold BEq.beq instBEqHornClause
-  simp only [BEq.rfl, Bool.and_self]
-eq_of_beq := by
-  intro C1 C2 beq
-  unfold BEq.beq instBEqHornClause at beq
-  simp at beq
-  rcases beq with ⟨x,y⟩
-  let C := {head := C1.head, body := C2.body : HornClause Atom}
-  have C_eq2 : C = C2 := by unfold C; rw [x]
-  have C_eq1 : C = C1 := by unfold C; rw [← y]
-  rw [← C_eq1, ← C_eq2]
-
-instance [BEq Atom] : BEq (HornFormula Atom) where
-beq := fun H1 H2 => List.beq H1 H2
-
 variable {Atom : Type u}
 
 theorem List.removeAll_not_mem [BEq α] [LawfulBEq α] (l : List α) (a : α) (not_mem : a ∉ l) : l.removeAll [a] = l := by
@@ -130,12 +107,6 @@ instance [ToString S] : ToString (HornClause S) where
 instance : Membership Atom (HornClause Atom) where
   mem C p := C.head = some p ∨ p ∈ C.body
 
-instance [BEq Atom] [LawfulBEq Atom] (p : Atom) (C : HornClause Atom) : Decidable (p ∈ C) := by 
-  unfold Membership.mem instMembership
-  simp only [instDecidableEqOfLawfulBEq]
-  
-  sorry
-
 end HornClause
 
 namespace HornFormula
@@ -151,7 +122,7 @@ theorem eval_toFormula_eq (H : HornFormula Atom) (v : Valuation Atom) : v.eval H
   simp
 
 instance : Membership (HornClause Atom) (HornFormula Atom) := List.instMembership
-instance [BEq Atom] [LawfulBEq (HornClause Atom)] {C : HornClause Atom} {H : HornFormula Atom} : Decidable (C ∈ H) := List.instDecidableMemOfLawfulBEq C H
+instance [DecidableEq Atom] {C : HornClause Atom} {H : HornFormula Atom} : Decidable (C ∈ H) := List.instDecidableMemOfLawfulBEq C H
 
 theorem unsat_if_contains_empty [BEq Atom] (H : HornFormula Atom) : HornClause.empty ∈ H -> H.toFormula.unsatisfiable := by
   intro empty_mem
@@ -167,16 +138,16 @@ theorem unsat_if_contains_empty [BEq Atom] (H : HornFormula Atom) : HornClause.e
     have eval_empty : v.eval HornClause.empty.toFormula = true := aux HornClause.empty empty_mem
     contradiction
 
-def unit [BEq Atom] [LawfulBEq (HornClause Atom)] (L : HornClause Atom) (H : HornFormula Atom) : HornFormula Atom :=
+def unit [DecidableEq Atom] (L : HornClause Atom) (H : HornFormula Atom) : HornFormula Atom :=
 if L ∈ H then match L.head, L.body with
 | none, [p] => (H.filter (fun C => !(C.body.elem p))).map (fun C => C.remove p)
 | some p, [] => (H.filter (fun C => !(C.head.isEqSome p))).map (fun C => C.remove p)
 | _, _ => H
 else H
 
-theorem unit_le [BEq Atom] [LawfulBEq (HornClause Atom)] (L : HornClause Atom) (H : HornFormula Atom) : (H.unit L).length ≤ H.length := by unfold unit; grind
+theorem unit_le [DecidableEq Atom] (L : HornClause Atom) (H : HornFormula Atom) : (H.unit L).length ≤ H.length := by unfold unit; grind
 
-theorem unit_lt [BEq Atom] [ReflBEq Atom] [LawfulBEq Atom] [LawfulBEq (HornClause Atom)] (L : HornClause Atom) (H : HornFormula Atom) : L.is_unit_clause -> L ∈ H -> (H.unit L).length < H.length := by
+theorem unit_lt [DecidableEq Atom] (L : HornClause Atom) (H : HornFormula Atom) : L.is_unit_clause -> L ∈ H -> (H.unit L).length < H.length := by
   unfold HornClause.is_unit_clause unit
   simp only [List.elem_eq_contains, Option.isEqSome_eq_beq_some]
   intro is_unit mem
@@ -198,143 +169,6 @@ theorem unit_lt [BEq Atom] [ReflBEq Atom] [LawfulBEq Atom] [LawfulBEq (HornClaus
     . grind
   next x y z => contradiction
 
-theorem sat_iff_unit_sat [BEq Atom] [LawfulBEq Atom] [LawfulBEq (HornClause Atom)] (H : HornFormula Atom) (L : HornClause Atom) : H.toFormula.satisfiable ↔ (H.unit L).toFormula.satisfiable := by
-  unfold Formula.satisfiable
-  constructor
-  . intro sat
-    rcases sat with ⟨v, v_sat⟩
-    exists v
-    unfold unit
-    rw [eval_toFormula_eq] at *
-    by_cases L_mem : L ∈ H
-    . simp only [L_mem, if_true]
-      . split
-        -- neg. unit clause
-        next hd body p hd_eq body_eq =>
-          simp?
-          intro C C_mem
-          by_cases hC : C.body.contains p
-          . apply Or.inl; grind
-          . apply Or.inr
-            have C_eval : v.eval C.toFormula = true := by grind
-            simp at hC
-            rw [HornClause.eval_true_iff] at C_eval
-            have test := (HornClause.eval_true_iff (C.remove p) v).mpr
-            rcases C_eval with ⟨q, hq⟩
-            have aux : ∃ q, (C.remove p).head.isEqSome q = true ∧ v.eval (Formula.atom q) = true ∨ q ∈ (C.remove p).body ∧ v.eval (Formula.atom q) = false := by
-              exists q
-              apply Or.inr
-              constructor
-              . 
-                sorry
-              . sorry
-
-
-            --rcases C_eval with ⟨q, ⟨q_hd, q_eval⟩ | ⟨q_mem, q_eval⟩⟩
-
-            sorry
-        next hd body p hd_eq body_eq =>
-          simp
-          intro C C_mem
-          by_cases hC : C.head == some p
-          . apply Or.inl; grind
-          . apply Or.inr
-            simp only [Bool.not_eq_true] at hC
-            have C_eval : v.eval C.toFormula := by grind
-            have p_eval : v.eval (Formula.atom p) := by 
-              simp only [List.all_eq, List.mem_map, forall_exists_index, and_imp, forall_apply_eq_imp_iff₂,decide_eq_true_eq] at v_sat
-              specialize v_sat L L_mem
-              unfold HornClause.toFormula at v_sat
-              simp [hd_eq, body_eq, Formula.disjunction_from_list] at v_sat
-              exact v_sat
-            have not_p_eval : !v.eval (Formula.atom p).not := by grind
-            have test := (HornClause.eval_true_iff C v).mp C_eval
-
-            unfold HornClause.remove
-            simp only [Option.isEqSome_eq_beq_some, hC, Bool.false_eq_true, ↓reduceIte]
-            cases C_head : C.head with
-            | none => 
-              rcases test with ⟨q, ⟨q_hd, q_eval⟩ | ⟨q_mem, q_eval⟩⟩
-              . grind
-              . have q_mem' : q ∈ C.body.removeAll [p] := by grind
-                rw [HornClause.eval_true_iff]
-                exists q
-                simp; exact ⟨q_mem', q_eval⟩  
-            | some r =>
-              rcases test with ⟨q, ⟨q_hd, q_eval⟩ | ⟨q_mem, q_eval⟩⟩
-              . unfold HornClause.toFormula Formula.disjunction_from_list
-                simp only; grind
-              . have q_mem' : q ∈ C.body.removeAll [p] := by grind
-                rw [HornClause.eval_true_iff]
-                exists q
-                simp only [Option.isEqSome_eq_beq_some, Option.some_beq_some, beq_iff_eq]
-                apply Or.inr
-                exact ⟨q_mem', q_eval⟩ 
-        . grind
-    . simp only [L_mem, if_false]; grind
-
-  . rintro ⟨v, v_eval⟩     
-    by_cases L_mem : L ∈ H
-    . simp only [unit, L_mem, if_true] at v_eval
-      split at v_eval
-      next hd body p L_hd L_body => 
-        let v' : Valuation Atom := fun x => if x == p then false else v x
-        exists v'
-        rw [eval_toFormula_eq] at *
-        simp only [List.all_map, List.all_eq_true, Function.comp_apply] at *
-        simp only [List.elem_eq_contains, List.contains_eq_mem, List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not, and_imp] at v_eval
-        intro C C_mem
-        by_cases p_mem : p ∈ C.body
-        . rw [HornClause.eval_true_iff]
-          exists p
-          apply Or.inr
-          constructor
-          . exact p_mem
-          . unfold v'
-            grind
-        . specialize v_eval C C_mem p_mem
-          rw [HornClause.eval_true_iff] at v_eval        
-          have p_nmem : ¬p ∈ C.remove p := by 
-            unfold HornClause.remove Membership.mem HornClause.instMembership
-            simp only [List.removeAll]
-            simp only [Option.isEqSome_eq_beq_some, beq_iff_eq, Option.ite_none_left_eq_some, not_and_self, List.contains_eq_mem, List.not_mem_nil, or_false, 
-              List.decide_mem_cons, decide_false, Bool.or_false, List.mem_filter, BEq.rfl, Bool.not_true, Bool.false_eq_true, and_false, not_false_eq_true]          
-          have p_eval : v'.eval (Formula.atom p) = false := by grind
-          rcases v_eval with ⟨q, v_eval⟩
-          rcases v_eval with ⟨q_hd, q_eval⟩ | ⟨q_mem, q_eval⟩
-          . rw [HornClause.eval_true_iff]
-            exists q
-            apply Or.inl
-            constructor
-            . unfold HornClause.remove at q_hd
-              simp only [Option.isEqSome_eq_beq_some, beq_iff_eq, Option.ite_none_left_eq_some] at *
-              exact q_hd.right
-            . have q_mem : q ∈ C.remove p := by 
-                unfold Membership.mem HornClause.instMembership
-                simp only [Option.isEqSome_eq_beq_some, beq_iff_eq] at q_hd
-                apply Or.inl
-                exact q_hd
-              have q_neq : q ≠ p := by grind
-              grind  
-          . rw [HornClause.eval_true_iff]
-            exists q
-            apply Or.inr
-            constructor
-            . unfold HornClause.remove at q_mem
-              simp only at q_mem
-              grind
-            . grind
-      next hd body p L_hd L_body => 
-        let v' : Valuation Atom := fun x => if x == p then true else v x
-        exists v'
-        rw [eval_toFormula_eq] at *
-        simp only [Option.isEqSome_eq_beq_some, List.map_map, List.all_map, List.all_filter, Bool.not_not, Function.comp_apply, List.all_eq_true, Bool.or_eq_true, beq_iff_eq] at *
-        intro C C_mem
-
-        sorry
-      next => grind
-    . simp only [unit, L_mem, if_false] at v_eval; exists v
-
 def unit_clauses : HornFormula Atom -> List (HornClause Atom)
 | [] => []
 | C::H' => if C.is_unit_clause then C::(unit_clauses H') else unit_clauses H'
@@ -345,7 +179,7 @@ theorem unit_clauses_sub {H : HornFormula Atom} : H.unit_clauses ⊆ H := by
 theorem is_unit_clause_of_mem_unit_clauses {C : HornClause Atom} {H : HornFormula Atom} : C ∈ H.unit_clauses -> C.is_unit_clause := by
   induction H <;> (unfold unit_clauses; grind)
 
-def unit_propagation [BEq Atom] [LawfulBEq Atom] (H : HornFormula Atom) : HornFormula Atom :=
+def unit_propagation [DecidableEq Atom] (H : HornFormula Atom) : HornFormula Atom :=
   match eq : H.unit_clauses with
   | [] => H
   | C::_ =>
@@ -366,3 +200,16 @@ def K' : HornFormula String := [{head := some "p", body := [] : HornClause Strin
 
 #eval! HornFormula.unit_propagation K'
 #eval! HornFormula.unit_propagation K
+
+section Exercise02A
+
+-- The goal of the exercise is to show something like the following:
+/-
+theorem HornFormula.sat_iff_empty_clause_not_mem_unit_propagation [DecidableEq Atom] (H : HornFormula Atom) :
+    H.toFormula.satisfiable ↔ HornClause.empty ∉ (H.unit_propagation) := by
+  -- An unfinished attempt at a similar theorem can be found in TheologExercises2026.WorkInProgress.UnitPropagation
+  sorry
+-/
+
+end Exercise02A
+
